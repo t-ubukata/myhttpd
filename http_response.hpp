@@ -1,5 +1,5 @@
-#ifndef _HTTP_RESPONSE_HPP_
-#define _HTTP_RESPONSE_HPP_
+#ifndef HTTP_RESPONSE_HPP_
+#define HTTP_RESPONSE_HPP_
 
 #include <string>
 #include <vector>
@@ -7,13 +7,13 @@
 
 #include "http_request.hpp"
 
-namespace sshttpsv {
+namespace nvhttpd {
 
 class Http_response {
-  public:
-    std::string get_response(const Http_request http_request) const;
+ public:
+  std::string get_response(const Http_request http_request) const;
 };
 
-}  // namespace sshttpsv
+}  // namespace nvhttpd
 
-#endif
+#endif  // HTTP_RESPONSE_HPP_

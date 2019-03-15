@@ -1,23 +1,23 @@
-CC = clang++
-CFLAGS = -std=c++14 -pedantic -Wall -Wextra -fno-exceptions
-PROGRAM = sshttpsv
+CXX = clang++
+CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra -fno-exceptions
+BIN = nvhttpd
 OBJS = main.o socket.o http_request.o http_response.o
 
-$(PROGRAM): $(OBJS)
-	$(CC) $^ -o $@ $(CFLAGS)
+$(BIN): $(OBJS)
+	$(CXX) $^ -o $@ $(CXXFLAGS)
 
 main.o: main.cpp
-	$(CC) $< -c $(CFLAGS)
+	$(CXX) $< -c $(CXXFLAGS)
 
 socket.o: socket.cpp
-	$(CC) $< -c $(CFLAGS)
+	$(CXX) $< -c $(CXXFLAGS)
 
 http_request.o: http_request.cpp
-	$(CC) $< -c $(CFLAGS)
+	$(CXX) $< -c $(CXXFLAGS)
 
 http_response.o: http_response.cpp
-	$(CC) $< -c $(CFLAGS)
+	$(CXX) $< -c $(CXXFLAGS)
 
 .PHONY: clean
 clean:
-		$(RM) $(PROGRAM) $(OBJS)
+	$(RM) $(BIN) $(OBJS)

@@ -1,8 +1,7 @@
-#include "socket.hpp"
+#include "server.hpp"
 
 int main(int argc, char* argv[]) {
-  sshttpsv::Socket sock {};
-  sock.Wait(8080);
+  nvhttpd::Server().Serve(8080);
 
   return EXIT_SUCCESS;
 }

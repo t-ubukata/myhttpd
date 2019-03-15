@@ -1,6 +1,6 @@
 #include "http_response.hpp"
 
-namespace sshttpsv {
+namespace nvhttpd {
 
 std::string Http_response::get_response(const Http_request http_request) const {
   std::string http_response_string;
@@ -36,4 +36,4 @@ std::string Http_response::get_response(const Http_request http_request) const {
 
 }
 
-}  // namespace sshttpsv
+}  // namespace nvhttpd

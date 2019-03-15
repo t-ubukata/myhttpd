@@ -1,6 +1,6 @@
 #include "http_request.hpp"
 
-namespace sshttpsv {
+namespace nvhttpd {
 
 Http_request::Http_request(std::string request_header) {
   // todo: parse http request header and set members.
@@ -62,4 +62,4 @@ std::string Http_request::get_http_version(void) {
   return this->http_version;
 }
 
-}  // namespace sshttpsv
+}  // namespace nvhttpd

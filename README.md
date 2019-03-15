@@ -1,20 +1,21 @@
-# sshttpsv
+# nvhttpd
 
-Simple and stupid HTTP server.
+Naive HTTP server.
 
-WIP
+## TODO
 
-## Protocol
+### Protocol
 
 HTTP/1.1
 
-## Method
+### Method
 
 GET
 
-## Status code
+### Status code
 
 - 200 OK
+- 400 Bad Request
 - 403 Forbidden
 - 404 Not Found
 - 500 Internal Server Error
