@@ -11,32 +11,29 @@ Server::Server() noexcept {
   }
 }
 
-void Server::Serve(const int port) noexcept {
+void Server::Serve(const int port, const std::string& domain,
+                   const std::string& root_path) noexcept {
   SetOption();
   Bind(port);
   Listen();
 
-  int accepted_socket_fd {0};
-  constexpr unsigned char kCR {0x0d};
-  constexpr unsigned char kLF {0x0a};
-  constexpr size_t kBufSize {1024};
+  std::cout << "Serving..." << std::endl;
 
   // Main loop.
   while (true) {
-    accepted_socket_fd = accept(socket_fd(), (struct sockaddr*)NULL, NULL);
+    auto accepted_socket_fd {accept(socket_fd(), (struct sockaddr*)NULL, NULL)};
     // Continues when accept() fails.
     if (accepted_socket_fd == -1) {
         continue;
     }
 
-    char buf[kBufSize] {0};
+    char buf[1024] {0};
     std::string request_header;
-    ssize_t read_size {0};
 
     // Receives message until meeting CRLFCRLF.
     while (true) {
       // Gives sizeof(buf) -1 because of NULL termination.
-      read_size = recv(accepted_socket_fd, buf, sizeof(buf) - 1, 0);
+      auto read_size {recv(accepted_socket_fd, buf, sizeof(buf) - 1, 0)};
       if (read_size == -1) {
         std::cerr << "read() failed." << std::endl;
         std::cerr << "ERROR: " << strerror(errno) << std::endl;
@@ -50,6 +47,8 @@ void Server::Serve(const int port) noexcept {
       }
 
       // Checks end of header.
+      constexpr unsigned char kCR {0x0d};
+      constexpr unsigned char kLF {0x0a};
       if ((request_header[request_header.length() - 4] == kCR) &&
           (request_header[request_header.length() - 3] == kLF) &&
           (request_header[request_header.length() - 2] == kCR) &&
@@ -63,15 +62,12 @@ void Server::Serve(const int port) noexcept {
       }
     }
 
-    // TODO: Parse request and get response.
-    Http_request http_request {request_header};
-
-    Http_response http_response;
-    std::string http_response_string = http_response.get_response(http_request);
+    // Get response.
+    auto response = Response(request_header);
 
     // Writes response.
-    if (send(accepted_socket_fd, http_response_string.c_str(),
-        http_response_string.length(), 0) == -1) {
+    if (send(accepted_socket_fd, response.c_str(),
+        response.length(), 0) == -1) {
       std::cerr << "write() failed." << std::endl;
       std::cerr << "ERROR: " << strerror(errno) << std::endl;
     }
@@ -139,6 +135,20 @@ void Server::Listen() noexcept {
     close(socket_fd_);
     exit(EXIT_FAILURE);
   }
+}
+
+namespace {
+
+std::string Response(const std::string& http_request) {
+  // TODO: Implement
+
+  // Get target path
+
+  // Get file content
+
+  return "Hello, World.";
+}
+
 }
 
 }  // namespace nvhttpd

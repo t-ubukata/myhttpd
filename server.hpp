@@ -21,7 +21,8 @@ class Server {
   // Opens socket and set socket file descriptor.
   Server() noexcept;
   // Serves.
-  void Serve(const int port) noexcept;
+  void Serve(const int port, const std::string& domain,
+             const std::string& root_path) noexcept;
   int socket_fd() const noexcept;
 
  private:
@@ -35,6 +36,8 @@ class Server {
   // Socket file descriptor.
   int socket_fd_;
 };
+
+std::string Response(const std::string& http_request);
 
 }  // namespace nvhttpd
 
