@@ -1,6 +1,9 @@
 #ifndef SERVER_HPP_
 #define SERVER_HPP_
 
+#include <sstream>
+#include <string>
+#include <vector>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
