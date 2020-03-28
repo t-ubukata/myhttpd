@@ -13,6 +13,11 @@ Server::Server() noexcept {
 
 void Server::Serve(const int port, const std::string& domain,
                    const std::string& root_path) noexcept {
+
+  // TODO: Use.
+  (void)domain;
+  (void)root_path;
+
   SetOption();
   Bind(port);
   Listen();
@@ -139,6 +144,7 @@ void Server::Listen() noexcept {
 
 std::string Response(const std::string& http_request) {
   // TODO: Implement
+  (void)http_request;
 
   // Get target path
 
@@ -161,6 +167,7 @@ class Http_request {
 };
 
 Http_request::Http_request(std::string request_header) {
+  (void)request_header;
   // todo: parse http request header and set members.
 
   /*
@@ -226,6 +233,7 @@ class Http_response {
 };
 
 std::string Http_response::get_response(const Http_request http_request) const {
+  (void)http_request;
   std::string http_response_string;
   // todo:
   // get http_request member
