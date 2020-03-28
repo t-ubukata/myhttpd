@@ -1,4 +1,4 @@
-#include "server.hpp"
+#include "server.h"
 
 namespace nvhttpd {
 
@@ -137,8 +137,6 @@ void Server::Listen() noexcept {
   }
 }
 
-namespace {
-
 std::string Response(const std::string& http_request) {
   // TODO: Implement
 
@@ -147,8 +145,6 @@ std::string Response(const std::string& http_request) {
   // Get file content
 
   return "Hello, World.";
-}
-
 }
 
 class Http_request {

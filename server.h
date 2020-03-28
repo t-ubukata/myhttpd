@@ -14,9 +14,6 @@
 #include <iostream>
 #include <string>
 
-#include "http_request.hpp"
-#include "http_response.hpp"
-
 namespace nvhttpd {
 
 class Server {

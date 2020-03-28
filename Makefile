@@ -1,8 +1,10 @@
 CXX := clang++
-CXXFLAGS := -g -std=c++17 -Wall -Wextra -pedantic -pedantic-errors \
+# CXXFLAGS := -g -std=c++17 -Wall -Wextra -pedantic -pedantic-errors \
+#             -fno-exceptions -I.
+CXXFLAGS := -g -std=c++17 -Wall -pedantic -pedantic-errors \
             -fno-exceptions -I.
 BIN = myhttpd
-OBJS = main.o socket.o
+OBJS = main.o server.o
 
 $(BIN): $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
