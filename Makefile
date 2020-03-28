@@ -1,22 +1,16 @@
-CXX = clang++
-CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra -fno-exceptions
-BIN = nvhttpd
-OBJS = main.o socket.o http_request.o http_response.o
+CXX := clang++
+CXXFLAGS := -g -std=c++17 -Wall -Wextra -pedantic -pedantic-errors \
+            -fno-exceptions -I.
+BIN = myhttpd
+OBJS = main.o socket.o
 
 $(BIN): $(OBJS)
-	$(CXX) $^ -o $@ $(CXXFLAGS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
-main.o: main.cpp
-	$(CXX) $< -c $(CXXFLAGS)
-
-socket.o: socket.cpp
-	$(CXX) $< -c $(CXXFLAGS)
-
-http_request.o: http_request.cpp
-	$(CXX) $< -c $(CXXFLAGS)
-
-http_response.o: http_response.cpp
-	$(CXX) $< -c $(CXXFLAGS)
+main.o: main.cc
+	$(CXX) $(CXXFLAGS) $< -c
+server.o: server.cc
+	$(CXX) $(CXXFLAGS) $< -c
 
 .PHONY: clean
 clean:
