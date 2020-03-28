@@ -8,10 +8,14 @@ $(BIN): $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 main.o: main.cc
-	$(CXX) $(CXXFLAGS) $< -c
+	$(CXX) $(CXXFLAGS) $^ -c -o $@
 server.o: server.cc
-	$(CXX) $(CXXFLAGS) $< -c
+	$(CXX) $(CXXFLAGS) $^ -c -o $@
 
-.PHONY: clean
+.PHONY: format clean
+
+format:
+	clang-format -i -style=Google *.cc *.h
+
 clean:
 	$(RM) $(BIN) $(OBJS)

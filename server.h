@@ -1,44 +1,50 @@
-#ifndef SERVER_HPP_
-#define SERVER_HPP_
+#ifndef SERVER_H_
+#define SERVER_H_
 
-#include <sstream>
-#include <string>
-#include <vector>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 
+#include <chrono>
+#include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <iostream>
 #include <string>
 
-namespace nvhttpd {
+namespace myhttpd {
 
-class Server {
- public:
-  // Opens socket and set socket file descriptor.
-  Server() noexcept;
-  // Serves.
-  void Serve(const int port, const std::string& domain,
-             const std::string& root_path) noexcept;
-  int socket_fd() const noexcept;
+void Serve(uint16_t port, const std::string& root_path);
 
- private:
-  // Sets socket option.
-  void SetOption() noexcept;
-  // Binds socket file descriptor.
-  void Bind(const int port) noexcept;
-  // Listens on Socket file descriptor.
-  void Listen() noexcept;
+}  // namespace myhttpd
 
-  // Socket file descriptor.
-  int socket_fd_;
-};
+#define LOG_FATAL(MSG)                                                       \
+  do {                                                                       \
+    const std::chrono::system_clock::time_point tp =                         \
+        std::chrono::system_clock::now();                                    \
+    const std::time_t tt = std::chrono::system_clock::to_time_t(tp);         \
+    char time_str[20];                                                       \
+    std::strftime(time_str, sizeof(time_str), "%F %T", std::localtime(&tt)); \
+    std::cerr << time_str << ":"                                             \
+              << " F " << __FILE__ << ":" << __LINE__ << "] " << (MSG)       \
+              << "\n";                                                       \
+    abort();                                                                 \
+  } while (false)
 
-std::string Response(const std::string& http_request);
+#define CHECK(COND, MSG) \
+  do {                   \
+    if (!(COND)) {       \
+      LOG_FATAL((MSG));  \
+    }                    \
+  } while (false)
 
-}  // namespace nvhttpd
+#define CHECK_ERRNO(COND, MSG)                                             \
+  do {                                                                     \
+    if (!(COND)) {                                                         \
+      LOG_FATAL(std::string((MSG)) + ": " + std::string(strerror(errno))); \
+    }                                                                      \
+  } while (false)
 
-#endif  // SERVER_HPP_
+#endif  // SERVER_H_
