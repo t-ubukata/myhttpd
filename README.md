@@ -1,6 +1,6 @@
-# nvhttpd
+# myhttpd
 
-Naive HTTP server.
+A simple HTTP server.
 
 ## TODO
 
