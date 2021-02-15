@@ -77,15 +77,13 @@ void Serve(uint16_t port, const std::string& root_path) {
       }
       req_h.append(buf);
       // Checks end of header.
-      constexpr uint8_t CR = 0x0d;
-      constexpr uint8_t LF = 0x0a;
-      auto l = req_h.length();
-      if ((req_h[l - 4] == CR) && (req_h[l - 3] == LF) &&
-          (req_h[l - 2] == CR) && (req_h[l - 1] == LF)) {
+      if (req_h.size() >= 4 && req_h.substr(req_h.size() - 4) == "\r\n\r\n") {
         break;
       }
     }
+
     auto res = Response(req_h, root_path);
+
     if (send(accepted_fd, res.c_str(), res.length(), 0) == -1) {
       std::cerr << "send() failed: " << strerror(errno) << "\n";
     }
