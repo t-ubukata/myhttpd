@@ -15,7 +15,8 @@ int Init(uint16_t port) {
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  auto bind_ret = bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+  auto bind_ret =
+      bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
   CHECK_ERRNO(bind_ret == 0, "bind() failed.");
 
   auto listen_ret = listen(fd, SOMAXCONN);
@@ -24,13 +25,15 @@ int Init(uint16_t port) {
   return fd;
 }
 
-std::string Response(const std::string& request_header, const std::string& root_path) {
+std::string Response(const std::string& request_header,
+                     const std::string& root_path) {
   char method[16];
   char uri[256];
   char ver[64];
   auto ret = sscanf(request_header.c_str(), "%s %s %s", method, uri, ver);
   if (ret == EOF) {
-    std::cerr << "sscanf() failed: " << "\n";
+    std::cerr << "sscanf() failed: "
+              << "\n";
     // TODO: Return 500.
   }
   if (std::string(method) != "GET") {
@@ -51,7 +54,8 @@ std::string Response(const std::string& request_header, const std::string& root_
 void Serve(uint16_t port, const std::string& root_path) {
   auto fd = Init(port);
   while (true) {
-    auto accepted_fd = accept(fd, static_cast<struct sockaddr*>(nullptr), nullptr);
+    auto accepted_fd =
+        accept(fd, static_cast<struct sockaddr*>(nullptr), nullptr);
     // Continues when accept() fails.
     if (accepted_fd == -1) {
       std::cerr << "accept() failed: " << strerror(errno) << "\n";
@@ -76,7 +80,8 @@ void Serve(uint16_t port, const std::string& root_path) {
       constexpr uint8_t CR = 0x0d;
       constexpr uint8_t LF = 0x0a;
       auto l = req_h.length();
-      if ((req_h[l - 4] == CR) && (req_h[l - 3] == LF) && (req_h[l - 2] == CR) && (req_h[l - 1] == LF)) {
+      if ((req_h[l - 4] == CR) && (req_h[l - 3] == LF) &&
+          (req_h[l - 2] == CR) && (req_h[l - 1] == LF)) {
         break;
       }
     }
