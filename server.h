@@ -13,6 +13,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 
 namespace myhttpd {

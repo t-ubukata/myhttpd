@@ -28,17 +28,17 @@ int Init(uint16_t port) {
 std::string Response(const std::string& request_header,
                      const std::string& root_path) {
   constexpr size_t buf_sz = 1024;
-  std::string method;
-  method.reserve(buf_sz);
-  std::string target;
-  target.reserve(buf_sz);
-  std::string version;
-  version.reserve(buf_sz);
-  auto ret = sscanf(request_header.c_str(), "%s %s %s", method.c_str(),
-                    target.c_str(), version.c_str());
+  char method_c_str[buf_sz] = {};
+  char target_c_str[buf_sz] = {};
+  char version_c_str[buf_sz] = {};
+  auto ret = sscanf(request_header.c_str(), "%s %s %s", method_c_str,
+                    target_c_str, version_c_str);
+  std::string method(method_c_str);
+  std::string target(target_c_str);
+  std::string version(version_c_str);
+
   if (ret == EOF) {
-    std::cerr << "sscanf() failed: "
-              << "\n";
+    std::cerr << "sscanf() failed\n";
     return "HTTP/1.0 500 Internal Server Error\r\n\r\n";
   }
   if (method != "GET") {
@@ -49,16 +49,25 @@ std::string Response(const std::string& request_header,
   }
 
   // Removes trailing slash.
-  std::string new_root_path = root_path;
+  std::string canonical_root_path = root_path;
   if (root_path.substr(root_path.size() - 1) == "/") {
-    new_root_path = root_path.substr(0, root_path.size() - 1);
+    canonical_root_path = root_path.substr(0, root_path.size() - 1);
   }
-  // TODO: Canonicalize target.
+
+  std::string canonical_target;
   if (target == "/") {
-    std::ifstream(new_root_path + "/index.html");
+    canonical_target = canonical_root_path + "/index.html";
   } else {
-    // TODO: Read requested file.
+    canonical_target = canonical_root_path + target;
   }
+
+  std::ifstream ifs(target);
+  if(ifs.fail()) {
+    // TODO: Return 404.
+  }
+  std::string body((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+
+  // TODO: Define 200.
 
   return "Hello, World.";
 }
@@ -78,6 +87,7 @@ void Serve(uint16_t port, const std::string& root_path) {
 
     char buf[buf_sz] = {};
     std::string req_h;
+    // TODO: Define rest header.
     std::string res = "HTTP/1.0 500 Internal Server Error\r\n\r\n";
     // TODO: Fork.
     // Receives message until meeting CRLFCRLF.
@@ -94,7 +104,6 @@ void Serve(uint16_t port, const std::string& root_path) {
         break;
       }
       req_h.append(buf);
-      // Checks end of header.
       if (req_h.size() >= 4 && req_h.substr(req_h.size() - 4) == "\r\n\r\n") {
         break;
       }
