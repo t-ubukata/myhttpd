@@ -2,6 +2,10 @@
 
 namespace myhttpd {
 
+namespace {
+constexpr size_t kBufSz = 1024;
+}
+
 int Init(uint16_t port) {
   auto fd = socket(AF_INET, SOCK_STREAM, 0);
   CHECK_ERRNO(fd != -1, "socket() failed.");
@@ -27,10 +31,9 @@ int Init(uint16_t port) {
 
 std::string Response(const std::string& request_header,
                      const std::string& root_path) {
-  constexpr size_t buf_sz = 1024;
-  char method_c_str[buf_sz] = {};
-  char target_c_str[buf_sz] = {};
-  char version_c_str[buf_sz] = {};
+  char method_c_str[kBufSz] = {};
+  char target_c_str[kBufSz] = {};
+  char version_c_str[kBufSz] = {};
   auto ret = sscanf(request_header.c_str(), "%s %s %s", method_c_str,
                     target_c_str, version_c_str);
   std::string method(method_c_str);
@@ -39,42 +42,39 @@ std::string Response(const std::string& request_header,
 
   if (ret == EOF) {
     std::cerr << "sscanf() failed\n";
-    return "HTTP/1.0 500 Internal Server Error\r\n\r\n";
+    return "HTTP/1.1 500 Internal Server Error\r\n\r\n<html><body><p>500 "
+           "Internal Server Error</p></body></html>";
   }
   if (method != "GET") {
-    return "HTTP/1.0 501 Not Implemented\r\n\r\n";
+    return "HTTP/1.1 501 Not Implemented\r\n\r\n<html><body><p>501 Not "
+           "Implemented</p></body></html>";
   }
-  if (version != "HTTP/1.0") {
-    return "HTTP/1.0 505 HTTP Version Not Supported \r\n\r\n";
+  if (version != "HTTP/1.1") {
+    return "HTTP/1.1 505 HTTP Version Not Supported\r\n\r\n<html><body><p>505 "
+           "HTTP Version Not Supported</p></body></html>";
   }
 
   // Removes trailing slash.
-  std::string canonical_root_path = root_path;
-  if (root_path.substr(root_path.size() - 1) == "/") {
-    canonical_root_path = root_path.substr(0, root_path.size() - 1);
+  auto canonical_root_path = (root_path.substr(root_path.size() - 1) == "/")
+                                 ? root_path.substr(0, root_path.size() - 1)
+                                 : root_path;
+  auto canonical_target = (target == "/")
+                              ? (canonical_root_path + "/index.html")
+                              : canonical_root_path + target;
+
+  std::ifstream ifs(canonical_target);
+  if (ifs.fail()) {
+    return "HTTP/1.1 404 Not Found\r\n\r\n<html><body><p>404 Not "
+           "Found</p></body></html>";
   }
+  std::string body((std::istreambuf_iterator<char>(ifs)),
+                   std::istreambuf_iterator<char>());
 
-  std::string canonical_target;
-  if (target == "/") {
-    canonical_target = canonical_root_path + "/index.html";
-  } else {
-    canonical_target = canonical_root_path + target;
-  }
-
-  std::ifstream ifs(target);
-  if(ifs.fail()) {
-    // TODO: Return 404.
-  }
-  std::string body((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-
-  // TODO: Define 200.
-
-  return "Hello, World.";
+  return "HTTP/1.1 200 OK\r\n\r\n" + body;
 }
 
 void Serve(uint16_t port, const std::string& root_path) {
   auto fd = Init(port);
-  constexpr size_t buf_sz = 1024;
 
   while (true) {
     auto accepted_fd =
@@ -85,10 +85,9 @@ void Serve(uint16_t port, const std::string& root_path) {
       continue;
     }
 
-    char buf[buf_sz] = {};
+    char buf[kBufSz] = {};
     std::string req_h;
-    // TODO: Define rest header.
-    std::string res = "HTTP/1.0 500 Internal Server Error\r\n\r\n";
+    auto is_recv_succeeded = false;
     // TODO: Fork.
     // Receives message until meeting CRLFCRLF.
     while (true) {
@@ -105,11 +104,17 @@ void Serve(uint16_t port, const std::string& root_path) {
       }
       req_h.append(buf);
       if (req_h.size() >= 4 && req_h.substr(req_h.size() - 4) == "\r\n\r\n") {
+        is_recv_succeeded = true;
         break;
       }
     }
 
-    res = Response(req_h, root_path);
+    std::cerr << "Request header:\n" << req_h << "\n";
+    auto res =
+        is_recv_succeeded
+            ? Response(req_h, root_path)
+            : "HTTP/1.1 500 Internal Server Error\r\n\r\n<html><body><p>500 "
+              "Internal Server Error</p></body></html>";
 
     if (send(accepted_fd, res.c_str(), res.length(), 0) == -1) {
       std::cerr << "send() failed: " << strerror(errno) << "\n";
