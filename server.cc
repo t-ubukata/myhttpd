@@ -4,16 +4,29 @@ namespace myhttpd {
 
 namespace {
 constexpr size_t kBufSz = 1024;
-}
+constexpr const char* kRes200Hdr = "HTTP/1.1 200 OK\r\n\r\n";
+constexpr const char* kRes404 =
+    "HTTP/1.1 404 Not Found\r\n\r\n<html><body><p>404 Not "
+    "Found</p></body></html>";
+constexpr const char* kRes500 =
+    "HTTP/1.1 500 Internal Server Error\r\n\r\n<html><body><p>500 Internal "
+    "Server Error</p></body></html>";
+constexpr const char* kRes501 =
+    "HTTP/1.1 501 Not Implemented\r\n\r\n<html><body><p>501 Not "
+    "Implemented</p></body></html>";
+constexpr const char* kRes505 =
+    "HTTP/1.1 505 HTTP Version Not Supported\r\n\r\n<html><body><p>505 HTTP "
+    "Version Not Supported</p></body></html>";
+}  // namespace
 
 int Init(uint16_t port) {
   auto fd = socket(AF_INET, SOCK_STREAM, 0);
-  CHECK_ERRNO(fd != -1, "socket() failed.");
+  MYHTTPD_CHECK_ERRNO(fd != -1, "socket() failed.");
 
   int optval = 1;
   auto setsockopt_ret =
       setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-  CHECK_ERRNO(setsockopt_ret == 0, "setsockopt() failed.");
+  MYHTTPD_CHECK_ERRNO(setsockopt_ret == 0, "setsockopt() failed.");
 
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
@@ -21,59 +34,49 @@ int Init(uint16_t port) {
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   auto bind_ret =
       bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
-  CHECK_ERRNO(bind_ret == 0, "bind() failed.");
+  MYHTTPD_CHECK_ERRNO(bind_ret == 0, "bind() failed.");
 
   auto listen_ret = listen(fd, SOMAXCONN);
-  CHECK_ERRNO(listen_ret == 0, "listen() failed.");
+  MYHTTPD_CHECK_ERRNO(listen_ret == 0, "listen() failed.");
 
   return fd;
 }
 
-std::string Response(const std::string& request_header,
-                     const std::string& root_path) {
+std::string Response(std::string_view request_header) {
   char method_c_str[kBufSz] = {};
   char target_c_str[kBufSz] = {};
   char version_c_str[kBufSz] = {};
-  auto ret = sscanf(request_header.c_str(), "%s %s %s", method_c_str,
+  auto ret = sscanf(request_header.data(), "%s %s %s", method_c_str,
                     target_c_str, version_c_str);
+  if (ret == EOF) {
+    auto sscanf_err = strerror(errno);
+    MYHTTPD_LOG_ERROR(std::string("sscanf() failed: ") + sscanf_err);
+    return kRes500;
+  }
   std::string method(method_c_str);
   std::string target(target_c_str);
   std::string version(version_c_str);
 
-  if (ret == EOF) {
-    std::cerr << "sscanf() failed\n";
-    return "HTTP/1.1 500 Internal Server Error\r\n\r\n<html><body><p>500 "
-           "Internal Server Error</p></body></html>";
-  }
   if (method != "GET") {
-    return "HTTP/1.1 501 Not Implemented\r\n\r\n<html><body><p>501 Not "
-           "Implemented</p></body></html>";
+    return kRes501;
   }
   if (version != "HTTP/1.1") {
-    return "HTTP/1.1 505 HTTP Version Not Supported\r\n\r\n<html><body><p>505 "
-           "HTTP Version Not Supported</p></body></html>";
+    return kRes505;
   }
 
-  // Removes trailing slash.
-  auto canonical_root_path = (root_path.substr(root_path.size() - 1) == "/")
-                                 ? root_path.substr(0, root_path.size() - 1)
-                                 : root_path;
-  auto canonical_target = (target == "/")
-                              ? (canonical_root_path + "/index.html")
-                              : canonical_root_path + target;
+  auto canonical_target = (target == "/") ? "./index.html" : "./" + target;
 
   std::ifstream ifs(canonical_target);
   if (ifs.fail()) {
-    return "HTTP/1.1 404 Not Found\r\n\r\n<html><body><p>404 Not "
-           "Found</p></body></html>";
+    return kRes404;
   }
   std::string body((std::istreambuf_iterator<char>(ifs)),
                    std::istreambuf_iterator<char>());
 
-  return "HTTP/1.1 200 OK\r\n\r\n" + body;
+  return kRes200Hdr + body;
 }
 
-void Serve(uint16_t port, const std::string& root_path) {
+void Serve(uint16_t port) {
   auto fd = Init(port);
 
   while (true) {
@@ -81,7 +84,8 @@ void Serve(uint16_t port, const std::string& root_path) {
         accept(fd, static_cast<struct sockaddr*>(nullptr), nullptr);
     // Continues when accept() fails.
     if (accepted_fd == -1) {
-      std::cerr << "accept() failed: " << strerror(errno) << "\n";
+      auto e = strerror(errno);
+      MYHTTPD_LOG_ERROR(std::string("accept() failed: ") + e);
       continue;
     }
 
@@ -94,10 +98,14 @@ void Serve(uint16_t port, const std::string& root_path) {
       // Gives sizeof(buf) -1 because of NULL termination.
       auto sz = recv(accepted_fd, buf, sizeof(buf) - 1, 0);
       if (sz == -1) {
-        std::cerr << "recv() failed: " << strerror(errno) << "\n";
+        auto recv_err = strerror(errno);
+        MYHTTPD_LOG_ERROR(std::string("recv() failed: ") + recv_err);
         accepted_fd = -1;
-        close(accepted_fd);
-        // TODO: Check error.
+        auto close_ret = close(accepted_fd);
+        if (close_ret != 0) {
+          auto close_err = strerror(errno);
+          MYHTTPD_LOG_ERROR(std::string("close() failed: ") + close_err);
+        }
 
         // Response is 500.
         break;
@@ -105,23 +113,20 @@ void Serve(uint16_t port, const std::string& root_path) {
       req_h.append(buf);
       if (req_h.size() >= 4 && req_h.substr(req_h.size() - 4) == "\r\n\r\n") {
         is_recv_succeeded = true;
+        MYHTTPD_LOG_INFO("Request header:\n" + req_h);
         break;
       }
     }
 
-    std::cerr << "Request header:\n" << req_h << "\n";
-    auto res =
-        is_recv_succeeded
-            ? Response(req_h, root_path)
-            : "HTTP/1.1 500 Internal Server Error\r\n\r\n<html><body><p>500 "
-              "Internal Server Error</p></body></html>";
+    auto res = is_recv_succeeded ? Response(req_h) : kRes500;
+    auto send_ret = send(accepted_fd, res.c_str(), res.length(), 0);
+    MYHTTPD_CHECK_ERRNO(send_ret != -1, "send() failed.");
 
-    if (send(accepted_fd, res.c_str(), res.length(), 0) == -1) {
-      std::cerr << "send() failed: " << strerror(errno) << "\n";
+    auto close_ret = close(accepted_fd);
+    if (close_ret != 0) {
+      auto close_err = strerror(errno);
+      MYHTTPD_LOG_ERROR(std::string("close() failed: ") + close_err);
     }
-
-    close(accepted_fd);
-    // TODO: Check error.
     accepted_fd = -1;
   }
 }
